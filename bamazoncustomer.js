@@ -10,7 +10,7 @@ let connection = mysql.createConnection({
   password: "Wilson4097",
   database: "bamazon"
 });
-// ("SELECT * product_name, department_name, price, stock_quantity FROM products", function(error, response)
+
 connection.connect(function(error) {
     if (error) throw error;
     console.log("connected as id " + connection.threadId);
@@ -21,11 +21,10 @@ connection.connect(function(error) {
       for (var i = 0; i < response.length; i++) {
         console.log(response[i].product_name + " | " + response[i].department_name + " | " + response[i].price + " | " + response[i].stock_quantity);
       }
-      console.log("-----------------------------------");
-      selectedProduct()
+      selectedProduct(response);
     });
   }
-let selectedProduct  = function(){ 
+let selectedProduct  = function(inventory){ 
 inquirer
   .prompt([
     {
@@ -34,7 +33,7 @@ inquirer
       message: "What would you like to purchase?"
     },
     {
-      name: "Howmany",
+      name: "quantity",
       type: "input",
       message: "How many would you like?"
       },
@@ -42,5 +41,28 @@ inquirer
   ])
   .then(function(inquirerResponse) {
   //if else statement or switch case goes here
+  var quantity = parseInt(inquirerResponse.quantity)
+  let chosenProduct = parseInt(inquirerResponse.choice);
+  console.log(chosenProduct);
+  let product = updateInventory(chosenProduct, inventory);
+  if (product){
+    promptHowMany(product)
+  } else  if (quantity > product.stock_quantity) {
+    console.log("Sorry, we don't have enough of that product in stock");
+    selectedProduct();
+  } else {
+    updateInventory(product, quantity);
+    selectedProduct();
+  }
   });
+}
+function updateInventory(product, quantity){
+connection.query(
+  "UPDATE products SET stock_quantity = stock_quantity - ? WHERE item_id = ?", 
+  [quantity, product.item_id], 
+  function(err,res){
+    console.log("\n Thank you for your purchase of" + quantity + product.product_name);
+    selectedProduct();
+  }
+)
 }
